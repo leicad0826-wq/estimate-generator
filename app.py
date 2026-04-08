@@ -237,10 +237,10 @@ def get_images_from_sheet(file_path, sheet_name='種別'):
     return [(d,) for d,_,_ in images]
 
 IMG_COL_START = 20   # 画像配置開始列（備考テキスト右側）
-IMG_ROW_START = 43   # 画像配置開始行（44行目=0-indexed 43）
+IMG_ROW_START = 44   # 画像配置開始行（45行目=0-indexed 44）
 EMU_PER_COL   = 181000  # 1列あたり概算EMU（列幅13 chars）
 MAX_CX = 18 * EMU_PER_COL           # col20〜col38 = 18列分
-MAX_CY = 3100000                     # row43〜row59 印刷範囲内に収まるよう調整
+MAX_CY = 3300000                     # row44〜row59(45行目〜60行目) 61行目にかからない
 IMG_GAP_EMU = 100000                 # オブジェクト間の余白（約1mm）
 
 def extract_objects(img_data):
