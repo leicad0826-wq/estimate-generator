@@ -47,7 +47,8 @@ st.markdown("""
     <h1>📄 最終見積書 自動生成</h1>
     <p>見積算出表（.xlsb）をアップロードするだけで最終見積書を自動生成します</p>
 </div>
-""", unsafe_allow_html=True)NS_XDR = 'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing'
+""", unsafe_allow_html=True)
+NS_XDR = 'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing'
 NS_A   = 'http://schemas.openxmlformats.org/drawingml/2006/main'
 NS_R   = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 NS_PKG = 'http://schemas.openxmlformats.org/package/2006/relationships'
