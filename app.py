@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from PIL import Image
 import io
 
-st.set_page_config(page_title="最終見積書 自動生成", page_icon="📄", layout="centered")st.markdown("""
+st.set_page_config(page_title="最終見積書 自動生成", page_icon="📄", layout="centered")
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
 html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
