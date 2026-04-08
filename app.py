@@ -431,8 +431,8 @@ if uploaded_xlsb and uploaded_template:
                                 with wb_xlsb.get_sheet(sname) as sheet:
                                     for row in sheet.rows():
                                         for cell in row:
-                                            if cell.v is not None and cell.r >= 1 and cell.c >= 1:
-                                                ws_new.cell(row=cell.r, column=cell.c, value=cell.v)
+                                            if cell.v is not None:
+                                                ws_new.cell(row=cell.r + 1, column=cell.c + 1, value=cell.v)
                             wb_new.save(xlsx_path)
                         xlsx_paths.append(xlsx_path)
                         progress.progress((i+1)/len(uploaded_xlsb))
