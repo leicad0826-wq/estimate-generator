@@ -425,7 +425,7 @@ if uploaded_xlsb and uploaded_template:
                         with pyxlsb.open_workbook(_io.BytesIO(xlsb_bytes)) as wb_xlsb:
                             wb_new = _WB()
                             wb_new.remove(wb_new.active)
-                             for si, sname in enumerate(wb_xlsb.sheets):
+                            for si, sname in enumerate(wb_xlsb.sheets):
                                   title = sname.strip() if sname and sname.strip() else f'Sheet{si+1}'
                                   ws_new = wb_new.create_sheet(title=title)
                              with wb_xlsb.get_sheet(sname) as sheet:
