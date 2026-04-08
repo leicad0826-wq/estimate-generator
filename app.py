@@ -115,7 +115,8 @@ def read_estimate(xlsx_path):
     return dict(anken=anken, anken_stripped=anken_stripped, nouki=str(nouki),
                 honnohin=honnohin, yubi=yubi, tanka=tanka,
                 betto_items=parse_betto(betto_text), sku=sku,
-                size_label=size_label, size_str=size_str, insatsu=insatsu_display)def get_images_from_sheet(xlsx_path, sheet_name='種別'):
+                size_label=size_label, size_str=size_str, insatsu=insatsu_display)
+    def get_images_from_sheet(xlsx_path, sheet_name='種別'):
     images = []
     with zipfile.ZipFile(xlsx_path) as z:
         wb_xml  = etree.fromstring(z.read('xl/workbook.xml'))
@@ -156,7 +157,8 @@ def read_estimate(xlsx_path):
                 fr = int(fe.find(f'{{{NS_XDR}}}row').text)
                 images.append((z.read(img_path), fc, fr))
     images.sort(key=lambda x: (x[2], x[1]))
-    return [(d,) for d,_,_ in images]def make_pic_anchor(rid, img_id, img_name, col_from, row_from, col_to, row_to):
+    return [(d,) for d,_,_ in images]
+def make_pic_anchor(rid, img_id, img_name, col_from, row_from, col_to, row_to):
     anchor = etree.Element(f'{{{NS_XDR}}}twoCellAnchor'); anchor.set('editAs','oneCell')
     fe = etree.SubElement(anchor, f'{{{NS_XDR}}}from')
     etree.SubElement(fe, f'{{{NS_XDR}}}col').text    = str(col_from)
@@ -213,7 +215,8 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
         drawing.append(make_pic_anchor(rid, img_id, f'design_{idx}', col_from, 46, col_to, 57))
         all_files[f'xl/media/{fname}'] = img_data
     return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
-            etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))def fill_sheet(ws, d):
+            etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
+    def fill_sheet(ws, d):
     tomorrow = datetime.now() + timedelta(days=1)
     ws['AD4'] = tomorrow.year; ws['AH4'] = tomorrow.month; ws['AK4'] = tomorrow.day
     ws['F11'] = d['nouki']
@@ -306,7 +309,8 @@ def generate(xlsx_paths, template_path, output_path):
     with zipfile.ZipFile(output_path,'w', zipfile.ZIP_DEFLATED) as zout:
         for name, data in all_files.items():
             zout.writestr(name, data)
-    return output_pathst.markdown("""
+    return output_path
+    st.markdown("""
 <div class="step-card">
   <span class="step-num">1</span><span class="step-title">見積算出表をアップロード（複数OK）</span>
 </div>
