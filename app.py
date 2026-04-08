@@ -1,6 +1,3 @@
-cat /home/claude/app_v3.py
-出力
-
 import streamlit as st
 import subprocess, os, shutil, glob, zipfile, re, tempfile
 from lxml import etree
