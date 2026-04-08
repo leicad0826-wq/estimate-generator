@@ -659,5 +659,5 @@ else:
 
 # フッター
 st.markdown("<hr style='border:none;border-top:1px solid #f0d4e4;margin-top:32px;'>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:#c8a0b8;font-size:0.8rem;'>株式会社アイナック 事業推進部</p>",
+st.markdown("<p style='text-align:center;color:#c8a0b8;font-size:0.8rem;'>株式会社アイナック 事業推進部（東京）</p>",
             unsafe_allow_html=True)
