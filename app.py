@@ -99,10 +99,17 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     border: none !important;
     border-radius: 16px !important;
     padding: 24px 28px !important;
-    font-size: 1.3rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     box-shadow: 0 4px 16px rgba(180,60,120,0.3) !important;
     transition: all 0.2s !important;
+}
+[data-testid="stDownloadButton"] > button p,
+[data-testid="stDownloadButton"] > button span,
+[data-testid="stDownloadButton"] > button div,
+[data-testid="stDownloadButton"] > button * {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
 }
 [data-testid="stDownloadButton"] > button:hover {
     transform: translateY(-2px) !important;
