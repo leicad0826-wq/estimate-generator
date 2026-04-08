@@ -103,6 +103,8 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     font-weight: 700 !important;
     box-shadow: 0 4px 16px rgba(180,60,120,0.3) !important;
     transition: all 0.2s !important;
+    white-space: pre-line !important;
+    line-height: 1.6 !important;
 }
 [data-testid="stDownloadButton"] > button p,
 [data-testid="stDownloadButton"] > button span,
@@ -625,7 +627,7 @@ if uploaded_xlsb and uploaded_template:
                     """, unsafe_allow_html=True)
 
                     st.download_button(
-                        label=f"⬇️  {fname}  をダウンロード",
+                        label=f"⬇️  {fname}  を\nダウンロード",
                         data=output_bytes,
                         file_name=fname,
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
