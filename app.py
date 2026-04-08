@@ -92,22 +92,21 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     background: #fdf6f9 !important;
 }
 
-/* ダウンロードボタンを目立たせる */
+/* ダウンロードボタン（success-boxと同じサイズ感） */
 [data-testid="stDownloadButton"] > button {
     background: linear-gradient(135deg, #d4549c, #a044a0) !important;
     color: white !important;
     border: none !important;
-    border-radius: 14px !important;
-    padding: 22px 32px !important;
-    font-size: 1.25rem !important;
+    border-radius: 16px !important;
+    padding: 24px 28px !important;
+    font-size: 1.15rem !important;
     font-weight: 700 !important;
-    box-shadow: 0 6px 20px rgba(180,60,120,0.35) !important;
+    box-shadow: 0 4px 16px rgba(180,60,120,0.3) !important;
     transition: all 0.2s !important;
-    margin-top: 12px !important;
 }
 [data-testid="stDownloadButton"] > button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(180,60,120,0.45) !important;
+    box-shadow: 0 6px 20px rgba(180,60,120,0.4) !important;
 }
 
 /* 生成ボタン */
@@ -612,10 +611,9 @@ if uploaded_xlsb and uploaded_template:
 
                     fname = f'最終見積書_カードラボ様_{today}.xlsx'
 
-                    st.markdown(f"""
+                    st.markdown("""
                     <div class="success-box">
-                        🎉 <b>生成できました！</b><br>
-                        <small>{len(xlsx_paths)}件の案件を1ファイルにまとめました</small>
+                        🎉 <b>生成できました！</b>
                     </div>
                     """, unsafe_allow_html=True)
 
