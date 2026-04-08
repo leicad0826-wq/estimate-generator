@@ -238,30 +238,81 @@ def get_images_from_sheet(file_path, sheet_name='種別'):
 
 IMG_COL_START = 20   # 画像配置開始列（備考テキスト右側）
 IMG_ROW_START = 45   # 画像配置開始行
-IMG_COL_END   = 38   # 印刷範囲内の右端（AM=39の手前）
-IMG_ROW_END   = 59   # 印刷範囲内の下端（row60の手前）
-EMU_PER_COL   = 180000  # 1列あたり概算EMU（列幅13 chars）
-EMU_PER_ROW   = 180000  # 1行あたり概算EMU（行高18.75pt）
-MAX_CX = (IMG_COL_END - IMG_COL_START) * EMU_PER_COL  # 画像エリア最大幅
-MAX_CY = (IMG_ROW_END - IMG_ROW_START) * EMU_PER_ROW  # 画像エリア最大高さ
+EMU_PER_COL   = 181000  # 1列あたり概算EMU（列幅13 chars）
+MAX_CX = 18 * EMU_PER_COL           # col20〜col38 = 18列分
+MAX_CY = 3100000                     # row45〜row59 約3.4インチ（18.75pt行×14行分）
 
-def crop_to_content(img_data):
-    """画像の白背景・透明余白を除去してコンテンツ部分だけ切り出す"""
+def extract_objects(img_data):
+    """デザイン画像からヘッダーテキストを除去し、本体・台座を個別に切り出す"""
     import numpy as np
-    img = Image.open(io.BytesIO(img_data))
-    if img.mode != 'RGBA':
-        img = img.convert('RGBA')
+    img = Image.open(io.BytesIO(img_data)).convert('RGB')
     arr = np.array(img)
-    # 白に近いピクセル(RGB各240以上)を透明化
-    white = (arr[:,:,0] > 240) & (arr[:,:,1] > 240) & (arr[:,:,2] > 240)
-    arr[white, 3] = 0
-    img = Image.fromarray(arr)
-    bbox = img.getbbox()
-    if bbox:
-        img = img.crop(bbox)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    return buf.getvalue(), img.size[0], img.size[1]
+    non_white = ~((arr[:,:,0] > 240) & (arr[:,:,1] > 240) & (arr[:,:,2] > 240))
+    row_sums = non_white.sum(axis=1)
+    pad = 3
+
+    # ヘッダーテキスト除外: 20行以上の空白ギャップ後のコンテンツ開始行を探す
+    gap_count = 0
+    body_start = 0
+    for r in range(len(row_sums)):
+        if row_sums[r] == 0:
+            gap_count += 1
+        else:
+            if gap_count > 20:
+                body_start = r
+                break
+            gap_count = 0
+
+    body_area = non_white[body_start:, :]
+    col_sums = body_area.sum(axis=0)
+
+    # 列方向のギャップ検出（30px以上の空白列）でオブジェクト分割
+    sparse = col_sums < 5
+    in_gap = False
+    gaps = []
+    gs = 0
+    for c in range(len(sparse)):
+        if sparse[c] and not in_gap:
+            gs = c; in_gap = True
+        elif not sparse[c] and in_gap:
+            if c - gs > 30:
+                gaps.append((gs, c))
+            in_gap = False
+
+    content_cols = np.where(col_sums >= 5)[0]
+    if len(content_cols) == 0:
+        return [(img_data, img.size[0], img.size[1])]
+
+    # オブジェクト領域を収集
+    regions = []
+    prev = content_cols[0]
+    for g_start, g_end in gaps:
+        if g_start > prev:
+            regions.append((prev, g_start))
+        prev = g_end
+    regions.append((prev, content_cols[-1] + 1))
+
+    results = []
+    for c1, c2 in regions:
+        region = body_area[:, c1:c2]
+        rs = region.sum(axis=1)
+        rr = np.where(rs > 0)[0]
+        if len(rr) == 0:
+            continue
+        r1 = rr[0] + body_start
+        r2 = rr[-1] + body_start
+        # 小さすぎるオブジェクト（テキスト片等）は除外
+        obj_w = c2 - c1
+        obj_h = r2 - r1 + 1
+        if obj_w < 50 or obj_h < 50:
+            continue
+        crop = img.crop((max(0, c1-pad), max(0, r1-pad),
+                         min(img.width, c2+pad), min(img.height, r2+1+pad)))
+        buf = io.BytesIO()
+        crop.save(buf, format='PNG')
+        results.append((buf.getvalue(), crop.size[0], crop.size[1]))
+
+    return results if results else [(img_data, img.size[0], img.size[1])]
 
 def make_pic_anchor(rid, img_id, img_name, col, row, cx, cy, col_off=0):
     """oneCellAnchor: 開始セル＋EMUサイズ指定（アスペクト比固定）"""
@@ -315,20 +366,20 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
             ne = pic.find(f'.//{{{NS_XDR}}}cNvPr')
             if ne is not None and ne.get('name','') == '図 8':
                 drawing.remove(anchor)
-    n = len(images_list)
-    if n == 0:
+    # 全画像からオブジェクト（本体・台座等）を切り出し
+    all_objects = []
+    for img_data, in images_list:
+        all_objects.extend(extract_objects(img_data))
+    if not all_objects:
         return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
                 etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
-    per_img_max_cx = MAX_CX // n
+    n = len(all_objects)
+    per_obj_max_cx = MAX_CX // n
     cur_col_off_emu = 0
-    for idx, (img_data,) in enumerate(images_list):
+    for idx, (obj_data, img_w, img_h) in enumerate(all_objects):
         rid = f'rId{20+idx}'; img_id = 20+idx
         fname = f'{media_prefix}_{idx}.png'
-        # 余白トリミング＋実寸取得
-        cropped_data, img_w, img_h = crop_to_content(img_data)
-        # アスペクト比維持でサイズ計算
-        cx, cy = fit_image_size(img_w, img_h, per_img_max_cx, MAX_CY)
-        # 列位置を計算
+        cx, cy = fit_image_size(img_w, img_h, per_obj_max_cx, MAX_CY)
         col = IMG_COL_START + (cur_col_off_emu // EMU_PER_COL)
         col_off = cur_col_off_emu % EMU_PER_COL
         rel = etree.SubElement(rels, f'{{{NS_PKG}}}Relationship')
@@ -337,7 +388,7 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
         rel.set('Target', f'../media/{fname}')
         drawing.append(make_pic_anchor(rid, img_id, f'design_{idx}',
                                        col, IMG_ROW_START, cx, cy, col_off))
-        all_files[f'xl/media/{fname}'] = cropped_data
+        all_files[f'xl/media/{fname}'] = obj_data
         cur_col_off_emu += cx
     return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
             etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
