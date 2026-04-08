@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from PIL import Image
 import io
 
-st.set_page_config(page_title="カードラボ書籍最終見積書自動作成", page_icon="🌸", layout="centered")
+st.set_page_config(page_title="カードラボ「最終見積書」自動作成", page_icon="🌸", layout="centered")
 
 # ============================================================
 # スタイル
@@ -139,7 +139,7 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
 # ============================================================
 st.markdown("""
 <div class="hero">
-    <h1>🌸 カードラボ書籍最終見積書自動作成</h1>
+    <h1>🌸 カードラボ「最終見積書」自動作成</h1>
     <p>見積算出表（.xlsb）をアップロードするだけで最終見積書を自動生成します</p>
 </div>
 """, unsafe_allow_html=True)
