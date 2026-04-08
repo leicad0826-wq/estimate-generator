@@ -1,5 +1,3 @@
-bash
-
 cat /home/claude/app_v3.py
 出力
 
