@@ -86,21 +86,6 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     color: #8a5a20;
 }
 
-.download-area {
-    background: linear-gradient(135deg, #d4849c, #b06aa0);
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-top: 12px;
-    text-align: center;
-    color: white;
-}
-.download-area p {
-    margin: 0 0 12px 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
 [data-testid="stFileUploader"] {
     border: 2px dashed #e0b0c8 !important;
     border-radius: 14px !important;
@@ -112,16 +97,17 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     background: linear-gradient(135deg, #d4549c, #a044a0) !important;
     color: white !important;
     border: none !important;
-    border-radius: 12px !important;
-    padding: 16px 24px !important;
-    font-size: 1.1rem !important;
+    border-radius: 14px !important;
+    padding: 22px 32px !important;
+    font-size: 1.25rem !important;
     font-weight: 700 !important;
-    box-shadow: 0 4px 16px rgba(180,60,120,0.3) !important;
+    box-shadow: 0 6px 20px rgba(180,60,120,0.35) !important;
     transition: all 0.2s !important;
+    margin-top: 12px !important;
 }
 [data-testid="stDownloadButton"] > button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(180,60,120,0.4) !important;
+    box-shadow: 0 8px 24px rgba(180,60,120,0.45) !important;
 }
 
 /* 生成ボタン */
@@ -630,12 +616,6 @@ if uploaded_xlsb and uploaded_template:
                     <div class="success-box">
                         🎉 <b>生成できました！</b><br>
                         <small>{len(xlsx_paths)}件の案件を1ファイルにまとめました</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    st.markdown(f"""
-                    <div class="download-area">
-                        <p>👇 ここからダウンロードしてください</p>
                     </div>
                     """, unsafe_allow_html=True)
 
