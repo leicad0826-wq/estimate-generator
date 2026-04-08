@@ -7,102 +7,46 @@ from datetime import datetime, timedelta
 from PIL import Image
 import io
 
-st.set_page_config(page_title="最終見積書 自動生成", page_icon="📄", layout="centered")
-
-# ============================================================
-# スタイル
-# ============================================================
-st.markdown("""
+st.set_page_config(page_title="最終見積書 自動生成", page_icon="📄", layout="centered")st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
-
 html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
-
 .main { background: #f7f8fa; }
-
 .hero {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    border-radius: 16px;
-    padding: 40px 32px;
-    color: white;
-    margin-bottom: 32px;
-    position: relative;
-    overflow: hidden;
+    border-radius: 16px; padding: 40px 32px; color: white;
+    margin-bottom: 32px; position: relative; overflow: hidden;
 }
-.hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(99,179,237,0.15) 0%, transparent 70%);
-    border-radius: 50%;
-}
-.hero h1 { font-size: 1.8rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; }
+.hero h1 { font-size: 1.8rem; font-weight: 700; margin: 0 0 8px 0; }
 .hero p  { font-size: 0.95rem; opacity: 0.7; margin: 0; }
-
 .step-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    border: 1px solid #e8ecf0;
+    background: white; border-radius: 12px; padding: 20px 24px;
+    margin-bottom: 16px; border: 1px solid #e8ecf0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 .step-num {
-    display: inline-block;
-    background: #0f3460;
-    color: white;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    line-height: 28px;
-    text-align: center;
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin-right: 10px;
+    display: inline-block; background: #0f3460; color: white;
+    border-radius: 50%; width: 28px; height: 28px; line-height: 28px;
+    text-align: center; font-size: 0.85rem; font-weight: 700; margin-right: 10px;
 }
 .step-title { font-weight: 600; font-size: 1rem; color: #1a1a2e; }
-
 .success-box {
     background: linear-gradient(135deg, #e6fffa, #f0fff4);
-    border: 1px solid #9ae6b4;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-top: 16px;
+    border: 1px solid #9ae6b4; border-radius: 12px; padding: 20px 24px; margin-top: 16px;
 }
 .warning-box {
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
-    border-radius: 10px;
-    padding: 14px 18px;
-    font-size: 0.9rem;
-    color: #92400e;
-}
-
-[data-testid="stFileUploader"] {
-    border: 2px dashed #cbd5e0 !important;
-    border-radius: 12px !important;
-    background: #f7f8fa !important;
+    background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px;
+    padding: 14px 18px; font-size: 0.9rem; color: #92400e;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# ヘッダー
-# ============================================================
 st.markdown("""
 <div class="hero">
     <h1>📄 最終見積書 自動生成</h1>
     <p>見積算出表（.xlsb）をアップロードするだけで最終見積書を自動生成します</p>
 </div>
-""", unsafe_allow_html=True)
-
-# ============================================================
-# generate_estimate の関数群（インライン）
-# ============================================================
-NS_XDR = 'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing'
+""", unsafe_allow_html=True)NS_XDR = 'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing'
 NS_A   = 'http://schemas.openxmlformats.org/drawingml/2006/main'
 NS_R   = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 NS_PKG = 'http://schemas.openxmlformats.org/package/2006/relationships'
@@ -169,9 +113,7 @@ def read_estimate(xlsx_path):
     return dict(anken=anken, anken_stripped=anken_stripped, nouki=str(nouki),
                 honnohin=honnohin, yubi=yubi, tanka=tanka,
                 betto_items=parse_betto(betto_text), sku=sku,
-                size_label=size_label, size_str=size_str, insatsu=insatsu_display)
-
-def get_images_from_sheet(xlsx_path, sheet_name='種別'):
+                size_label=size_label, size_str=size_str, insatsu=insatsu_display)def get_images_from_sheet(xlsx_path, sheet_name='種別'):
     images = []
     with zipfile.ZipFile(xlsx_path) as z:
         wb_xml  = etree.fromstring(z.read('xl/workbook.xml'))
@@ -202,19 +144,17 @@ def get_images_from_sheet(xlsx_path, sheet_name='種別'):
             fe  = anchor.find(f'{{{NS_XDR}}}from')
             pic = anchor.find(f'{{{NS_XDR}}}pic')
             if fe is None or pic is None: continue
-            fc = int(fe.find(f'{{{NS_XDR}}}col').text)
-            fr = int(fe.find(f'{{{NS_XDR}}}row').text)
             blip = pic.find(f'.//{{{NS_A}}}blip')
             if blip is None: continue
             rid = blip.get(f'{{{NS_R}}}embed','')
             img_rel  = rid_map.get(rid,'')
             img_path = 'xl/media/' + img_rel.split('/')[-1]
             if img_path in z.namelist():
+                fc = int(fe.find(f'{{{NS_XDR}}}col').text)
+                fr = int(fe.find(f'{{{NS_XDR}}}row').text)
                 images.append((z.read(img_path), fc, fr))
     images.sort(key=lambda x: (x[2], x[1]))
-    return [(d,) for d,_,_ in images]
-
-def make_pic_anchor(rid, img_id, img_name, col_from, row_from, col_to, row_to):
+    return [(d,) for d,_,_ in images]def make_pic_anchor(rid, img_id, img_name, col_from, row_from, col_to, row_to):
     anchor = etree.Element(f'{{{NS_XDR}}}twoCellAnchor'); anchor.set('editAs','oneCell')
     fe = etree.SubElement(anchor, f'{{{NS_XDR}}}from')
     etree.SubElement(fe, f'{{{NS_XDR}}}col').text    = str(col_from)
@@ -271,9 +211,7 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
         drawing.append(make_pic_anchor(rid, img_id, f'design_{idx}', col_from, 46, col_to, 57))
         all_files[f'xl/media/{fname}'] = img_data
     return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
-            etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
-
-def fill_sheet(ws, d):
+            etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))def fill_sheet(ws, d):
     tomorrow = datetime.now() + timedelta(days=1)
     ws['AD4'] = tomorrow.year; ws['AH4'] = tomorrow.month; ws['AK4'] = tomorrow.day
     ws['F11'] = d['nouki']
@@ -311,7 +249,6 @@ def fill_sheet(ws, d):
         cell.alignment = Alignment(vertical='center')
 
 def generate(xlsx_paths, template_path, output_path):
-    tomorrow = datetime.now() + timedelta(days=1)
     shutil.copy(template_path, output_path)
     wb_out = load_workbook(output_path)
     with zipfile.ZipFile(template_path) as zt:
@@ -367,12 +304,7 @@ def generate(xlsx_paths, template_path, output_path):
     with zipfile.ZipFile(output_path,'w', zipfile.ZIP_DEFLATED) as zout:
         for name, data in all_files.items():
             zout.writestr(name, data)
-    return output_path
-
-# ============================================================
-# UI
-# ============================================================
-st.markdown("""
+    return output_pathst.markdown("""
 <div class="step-card">
   <span class="step-num">1</span><span class="step-title">見積算出表をアップロード（複数OK）</span>
 </div>
@@ -414,7 +346,6 @@ if uploaded_xlsb and uploaded_template:
         with st.spinner("生成中... しばらくお待ちください"):
             with tempfile.TemporaryDirectory() as tmpdir:
                 try:
-                    # xlsb → xlsx 変換（pyxlsb使用）
                     xlsx_paths = []
                     progress = st.progress(0)
                     for i, uf in enumerate(uploaded_xlsb):
@@ -430,18 +361,16 @@ if uploaded_xlsb and uploaded_template:
                                 with wb_xlsb.get_sheet(sname) as sheet:
                                     for row in sheet.rows():
                                         for cell in row:
-                                            if cell.v is not None:
+                                            if cell.v is not None and cell.r >= 1 and cell.c >= 1:
                                                 ws_new.cell(row=cell.r, column=cell.c, value=cell.v)
                             wb_new.save(xlsx_path)
                         xlsx_paths.append(xlsx_path)
                         progress.progress((i+1)/len(uploaded_xlsb))
 
-                    # テンプレート保存
                     template_path = os.path.join(tmpdir, '_template.xlsx')
                     with open(template_path, 'wb') as out:
                         out.write(uploaded_template.read())
 
-                    # 生成
                     today = datetime.now().strftime('%Y%m%d')
                     output_path = os.path.join(tmpdir, f'_最終見積書_カードラボ様_{today}.xlsx')
                     generate(xlsx_paths, template_path, output_path)
@@ -475,7 +404,6 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-# フッター
 st.markdown("---")
 st.markdown("<p style='text-align:center;color:#a0aec0;font-size:0.8rem;'>株式会社アイナック 事業推進部</p>",
             unsafe_allow_html=True)
