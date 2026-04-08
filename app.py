@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from PIL import Image
 import io
 
-st.set_page_config(page_title="最終見積書 自動生成", page_icon="📄", layout="centered")
+st.set_page_config(page_title="カードラボ書籍最終見積書自動作成", page_icon="🌸", layout="centered")
 
 # ============================================================
 # スタイル
@@ -18,41 +18,42 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
 
-.main { background: #f7f8fa; }
+.main { background: #fdf6f9; }
 
 .hero {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    border-radius: 16px;
-    padding: 40px 32px;
-    color: white;
-    margin-bottom: 32px;
+    background: linear-gradient(135deg, #e8b4c8 0%, #f2d0e0 40%, #c9a4d4 100%);
+    border-radius: 20px;
+    padding: 36px 32px;
+    color: #4a2040;
+    margin-bottom: 28px;
     position: relative;
     overflow: hidden;
+    border: 1px solid #e8a0c0;
 }
 .hero::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(99,179,237,0.15) 0%, transparent 70%);
+    top: -40%;
+    right: -15%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
     border-radius: 50%;
 }
-.hero h1 { font-size: 1.8rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; }
-.hero p  { font-size: 0.95rem; opacity: 0.7; margin: 0; }
+.hero h1 { font-size: 1.6rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.5px; }
+.hero p  { font-size: 0.9rem; opacity: 0.7; margin: 0; }
 
 .step-card {
     background: white;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    border: 1px solid #e8ecf0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    border: 1px solid #f0d4e4;
+    box-shadow: 0 2px 10px rgba(200,120,160,0.08);
 }
 .step-num {
     display: inline-block;
-    background: #0f3460;
+    background: linear-gradient(135deg, #d4849c, #c9a4d4);
     color: white;
     border-radius: 50%;
     width: 28px;
@@ -63,28 +64,72 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     font-weight: 700;
     margin-right: 10px;
 }
-.step-title { font-weight: 600; font-size: 1rem; color: #1a1a2e; }
+.step-title { font-weight: 600; font-size: 1rem; color: #4a2040; }
 
 .success-box {
-    background: linear-gradient(135deg, #e6fffa, #f0fff4);
-    border: 1px solid #9ae6b4;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-top: 16px;
+    background: linear-gradient(135deg, #fce4ec, #f3e5f5);
+    border: 2px solid #e091b5;
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-top: 20px;
+    text-align: center;
 }
+.success-box b { color: #8e2462; font-size: 1.15rem; }
+.success-box small { color: #7b3a6e; }
+
 .warning-box {
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
-    border-radius: 10px;
+    background: #fff8f0;
+    border: 1px solid #f5c28a;
+    border-radius: 12px;
     padding: 14px 18px;
     font-size: 0.9rem;
-    color: #92400e;
+    color: #8a5a20;
+}
+
+.download-area {
+    background: linear-gradient(135deg, #d4849c, #b06aa0);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-top: 12px;
+    text-align: center;
+    color: white;
+}
+.download-area p {
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 [data-testid="stFileUploader"] {
-    border: 2px dashed #cbd5e0 !important;
+    border: 2px dashed #e0b0c8 !important;
+    border-radius: 14px !important;
+    background: #fdf6f9 !important;
+}
+
+/* ダウンロードボタンを目立たせる */
+[data-testid="stDownloadButton"] > button {
+    background: linear-gradient(135deg, #d4549c, #a044a0) !important;
+    color: white !important;
+    border: none !important;
     border-radius: 12px !important;
-    background: #f7f8fa !important;
+    padding: 16px 24px !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 16px rgba(180,60,120,0.3) !important;
+    transition: all 0.2s !important;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(180,60,120,0.4) !important;
+}
+
+/* 生成ボタン */
+[data-testid="stBaseButton-primary"] {
+    background: linear-gradient(135deg, #d4849c, #c9a4d4) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -94,7 +139,7 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
 # ============================================================
 st.markdown("""
 <div class="hero">
-    <h1>📄 最終見積書 自動生成</h1>
+    <h1>🌸 カードラボ書籍最終見積書自動作成</h1>
     <p>見積算出表（.xlsb）をアップロードするだけで最終見積書を自動生成します</p>
 </div>
 """, unsafe_allow_html=True)
@@ -579,16 +624,23 @@ if uploaded_xlsb and uploaded_template:
                     with open(output_path, 'rb') as f:
                         output_bytes = f.read()
 
+                    fname = f'最終見積書_カードラボ様_{today}.xlsx'
+
                     st.markdown(f"""
                     <div class="success-box">
-                        ✅ <b>生成完了！</b><br>
-                        <small style="color:#276749">{len(xlsx_paths)}件の案件を1ファイルにまとめました</small>
+                        🎉 <b>生成できました！</b><br>
+                        <small>{len(xlsx_paths)}件の案件を1ファイルにまとめました</small>
                     </div>
                     """, unsafe_allow_html=True)
 
-                    fname = f'最終見積書_カードラボ様_{today}.xlsx'
+                    st.markdown(f"""
+                    <div class="download-area">
+                        <p>👇 ここからダウンロードしてください</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
                     st.download_button(
-                        label=f"⬇️ {fname} をダウンロード",
+                        label=f"⬇️  {fname}  をダウンロード",
                         data=output_bytes,
                         file_name=fname,
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -600,12 +652,12 @@ if uploaded_xlsb and uploaded_template:
 
 else:
     st.markdown("""
-    <div style="text-align:center; color:#a0aec0; padding: 32px 0; font-size:0.9rem;">
-        ↑ 見積算出表とテンプレートをアップロードしてください
+    <div style="text-align:center; color:#c8a0b8; padding: 32px 0; font-size:0.9rem;">
+        🌸 見積算出表とテンプレートをアップロードしてください
     </div>
     """, unsafe_allow_html=True)
 
 # フッター
-st.markdown("---")
-st.markdown("<p style='text-align:center;color:#a0aec0;font-size:0.8rem;'>株式会社アイナック 事業推進部</p>",
+st.markdown("<hr style='border:none;border-top:1px solid #f0d4e4;margin-top:32px;'>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:#c8a0b8;font-size:0.8rem;'>株式会社アイナック 事業推進部</p>",
             unsafe_allow_html=True)
