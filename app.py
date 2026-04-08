@@ -414,21 +414,26 @@ if uploaded_xlsb and uploaded_template:
         with st.spinner("生成中... しばらくお待ちください"):
             with tempfile.TemporaryDirectory() as tmpdir:
                 try:
-                    # xlsb → xlsx 変換
+                    # xlsb → xlsx 変換（pyxlsb使用）
                     xlsx_paths = []
                     progress = st.progress(0)
-                    for i, f in enumerate(uploaded_xlsb):
-                        xlsb_path = os.path.join(tmpdir, f.name)
-                        with open(xlsb_path, 'wb') as out:
-                            out.write(f.read())
-                        result = subprocess.run(
-                            ['libreoffice','--headless','--convert-to','xlsx',
-                             xlsb_path,'--outdir', tmpdir],
-                            capture_output=True, timeout=60
-                        )
-                        xlsx_path = xlsb_path.replace('.xlsb','.xlsx')
-                        if os.path.exists(xlsx_path):
-                            xlsx_paths.append(xlsx_path)
+                    for i, uf in enumerate(uploaded_xlsb):
+                        import pyxlsb, io as _io
+                        from openpyxl import Workbook as _WB
+                        xlsb_bytes = uf.read()
+                        xlsx_path = os.path.join(tmpdir, uf.name.replace('.xlsb', '.xlsx'))
+                        with pyxlsb.open_workbook(_io.BytesIO(xlsb_bytes)) as wb_xlsb:
+                            wb_new = _WB()
+                            wb_new.remove(wb_new.active)
+                            for sname in wb_xlsb.sheets:
+                                ws_new = wb_new.create_sheet(title=sname)
+                                with wb_xlsb.get_sheet(sname) as sheet:
+                                    for row in sheet.rows():
+                                        for cell in row:
+                                            if cell.v is not None:
+                                                ws_new.cell(row=cell.r, column=cell.c, value=cell.v)
+                            wb_new.save(xlsx_path)
+                        xlsx_paths.append(xlsx_path)
                         progress.progress((i+1)/len(uploaded_xlsb))
 
                     # テンプレート保存
