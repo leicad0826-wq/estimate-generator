@@ -237,10 +237,11 @@ def get_images_from_sheet(file_path, sheet_name='種別'):
     return [(d,) for d,_,_ in images]
 
 IMG_COL_START = 20   # 画像配置開始列（備考テキスト右側）
-IMG_ROW_START = 45   # 画像配置開始行
+IMG_ROW_START = 43   # 画像配置開始行（44行目=0-indexed 43）
 EMU_PER_COL   = 181000  # 1列あたり概算EMU（列幅13 chars）
 MAX_CX = 18 * EMU_PER_COL           # col20〜col38 = 18列分
-MAX_CY = 3100000                     # row45〜row59 約3.4インチ（18.75pt行×14行分）
+MAX_CY = 3100000                     # row43〜row59 印刷範囲内に収まるよう調整
+IMG_GAP_EMU = 100000                 # オブジェクト間の余白（約1mm）
 
 def extract_objects(img_data):
     """デザイン画像からヘッダーテキストを除去し、本体・台座を個別に切り出す"""
@@ -374,7 +375,8 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
         return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
                 etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
     n = len(all_objects)
-    per_obj_max_cx = MAX_CX // n
+    total_gap = IMG_GAP_EMU * (n - 1)
+    per_obj_max_cx = (MAX_CX - total_gap) // n
     cur_col_off_emu = 0
     for idx, (obj_data, img_w, img_h) in enumerate(all_objects):
         rid = f'rId{20+idx}'; img_id = 20+idx
@@ -389,7 +391,7 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
         drawing.append(make_pic_anchor(rid, img_id, f'design_{idx}',
                                        col, IMG_ROW_START, cx, cy, col_off))
         all_files[f'xl/media/{fname}'] = obj_data
-        cur_col_off_emu += cx
+        cur_col_off_emu += cx + IMG_GAP_EMU
     return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
             etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
 
