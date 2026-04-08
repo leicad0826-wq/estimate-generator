@@ -236,35 +236,73 @@ def get_images_from_sheet(file_path, sheet_name='種別'):
     images.sort(key=lambda x: (x[2], x[1]))
     return [(d,) for d,_,_ in images]
 
-def make_pic_anchor(rid, img_id, img_name, col_from, row_from, col_to, row_to):
-    anchor = etree.Element(f'{{{NS_XDR}}}twoCellAnchor'); anchor.set('editAs','oneCell')
+IMG_COL_START = 20   # 画像配置開始列（備考テキスト右側）
+IMG_ROW_START = 45   # 画像配置開始行
+IMG_COL_END   = 38   # 印刷範囲内の右端（AM=39の手前）
+IMG_ROW_END   = 59   # 印刷範囲内の下端（row60の手前）
+EMU_PER_COL   = 180000  # 1列あたり概算EMU（列幅13 chars）
+EMU_PER_ROW   = 180000  # 1行あたり概算EMU（行高18.75pt）
+MAX_CX = (IMG_COL_END - IMG_COL_START) * EMU_PER_COL  # 画像エリア最大幅
+MAX_CY = (IMG_ROW_END - IMG_ROW_START) * EMU_PER_ROW  # 画像エリア最大高さ
+
+def crop_to_content(img_data):
+    """画像の白背景・透明余白を除去してコンテンツ部分だけ切り出す"""
+    import numpy as np
+    img = Image.open(io.BytesIO(img_data))
+    if img.mode != 'RGBA':
+        img = img.convert('RGBA')
+    arr = np.array(img)
+    # 白に近いピクセル(RGB各240以上)を透明化
+    white = (arr[:,:,0] > 240) & (arr[:,:,1] > 240) & (arr[:,:,2] > 240)
+    arr[white, 3] = 0
+    img = Image.fromarray(arr)
+    bbox = img.getbbox()
+    if bbox:
+        img = img.crop(bbox)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    return buf.getvalue(), img.size[0], img.size[1]
+
+def make_pic_anchor(rid, img_id, img_name, col, row, cx, cy, col_off=0):
+    """oneCellAnchor: 開始セル＋EMUサイズ指定（アスペクト比固定）"""
+    anchor = etree.Element(f'{{{NS_XDR}}}oneCellAnchor')
     fe = etree.SubElement(anchor, f'{{{NS_XDR}}}from')
-    etree.SubElement(fe, f'{{{NS_XDR}}}col').text    = str(col_from)
-    etree.SubElement(fe, f'{{{NS_XDR}}}colOff').text = '25400'
-    etree.SubElement(fe, f'{{{NS_XDR}}}row').text    = str(row_from)
-    etree.SubElement(fe, f'{{{NS_XDR}}}rowOff').text = '88339'
-    te = etree.SubElement(anchor, f'{{{NS_XDR}}}to')
-    etree.SubElement(te, f'{{{NS_XDR}}}col').text    = str(col_to)
-    etree.SubElement(te, f'{{{NS_XDR}}}colOff').text = '127000'
-    etree.SubElement(te, f'{{{NS_XDR}}}row').text    = str(row_to)
-    etree.SubElement(te, f'{{{NS_XDR}}}rowOff').text = '83525'
+    etree.SubElement(fe, f'{{{NS_XDR}}}col').text    = str(col)
+    etree.SubElement(fe, f'{{{NS_XDR}}}colOff').text = str(col_off)
+    etree.SubElement(fe, f'{{{NS_XDR}}}row').text    = str(row)
+    etree.SubElement(fe, f'{{{NS_XDR}}}rowOff').text = '0'
+    ext_elem = etree.SubElement(anchor, f'{{{NS_XDR}}}ext')
+    ext_elem.set('cx', str(cx)); ext_elem.set('cy', str(cy))
     pic = etree.SubElement(anchor, f'{{{NS_XDR}}}pic')
     nv  = etree.SubElement(pic, f'{{{NS_XDR}}}nvPicPr')
     cNvPr = etree.SubElement(nv, f'{{{NS_XDR}}}cNvPr')
     cNvPr.set('id', str(img_id)); cNvPr.set('name', img_name)
     cNvPicPr = etree.SubElement(nv, f'{{{NS_XDR}}}cNvPicPr')
     locks = etree.SubElement(cNvPicPr, f'{{{NS_A}}}picLocks'); locks.set('noChangeAspect','1')
-    bf = etree.SubElement(pic, f'{{{NS_XDR}}}blipFill'); bf.set('rotWithShape','1')
+    bf = etree.SubElement(pic, f'{{{NS_XDR}}}blipFill')
     blip = etree.SubElement(bf, f'{{{NS_A}}}blip'); blip.set(f'{{{NS_R}}}embed', rid)
-    etree.SubElement(bf, f'{{{NS_A}}}stretch')
+    stretch = etree.SubElement(bf, f'{{{NS_A}}}stretch')
+    etree.SubElement(stretch, f'{{{NS_A}}}fillRect')
     spPr = etree.SubElement(pic, f'{{{NS_XDR}}}spPr')
     xfrm = etree.SubElement(spPr, f'{{{NS_A}}}xfrm')
     off = etree.SubElement(xfrm, f'{{{NS_A}}}off'); off.set('x','0'); off.set('y','0')
-    ext = etree.SubElement(xfrm, f'{{{NS_A}}}ext'); ext.set('cx','1900000'); ext.set('cy','1400000')
+    ext2 = etree.SubElement(xfrm, f'{{{NS_A}}}ext'); ext2.set('cx', str(cx)); ext2.set('cy', str(cy))
     pg = etree.SubElement(spPr, f'{{{NS_A}}}prstGeom'); pg.set('prst','rect')
     etree.SubElement(pg, f'{{{NS_A}}}avLst')
     etree.SubElement(anchor, f'{{{NS_XDR}}}clientData')
     return anchor
+
+def fit_image_size(img_w, img_h, max_cx, max_cy):
+    """画像をmax bounds内に収めるEMUサイズを計算（アスペクト比維持）"""
+    aspect = img_w / img_h
+    # 高さ基準で収める
+    cy = max_cy
+    cx = int(cy * aspect)
+    # 幅がはみ出す場合は幅基準に切り替え
+    if cx > max_cx:
+        cx = max_cx
+        cy = int(cx / aspect)
+    return cx, cy
 
 def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, media_prefix):
     drawing = etree.fromstring(tmpl_drawing_bytes)
@@ -281,17 +319,26 @@ def build_drawing(tmpl_drawing_bytes, tmpl_rels_bytes, images_list, all_files, m
     if n == 0:
         return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
                 etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
-    col_width = 37 // n
+    per_img_max_cx = MAX_CX // n
+    cur_col_off_emu = 0
     for idx, (img_data,) in enumerate(images_list):
         rid = f'rId{20+idx}'; img_id = 20+idx
         fname = f'{media_prefix}_{idx}.png'
-        col_from = idx * col_width; col_to = col_from + col_width - 1
+        # 余白トリミング＋実寸取得
+        cropped_data, img_w, img_h = crop_to_content(img_data)
+        # アスペクト比維持でサイズ計算
+        cx, cy = fit_image_size(img_w, img_h, per_img_max_cx, MAX_CY)
+        # 列位置を計算
+        col = IMG_COL_START + (cur_col_off_emu // EMU_PER_COL)
+        col_off = cur_col_off_emu % EMU_PER_COL
         rel = etree.SubElement(rels, f'{{{NS_PKG}}}Relationship')
         rel.set('Id', rid)
         rel.set('Type','http://schemas.openxmlformats.org/officeDocument/2006/relationships/image')
         rel.set('Target', f'../media/{fname}')
-        drawing.append(make_pic_anchor(rid, img_id, f'design_{idx}', col_from, 46, col_to, 57))
-        all_files[f'xl/media/{fname}'] = img_data
+        drawing.append(make_pic_anchor(rid, img_id, f'design_{idx}',
+                                       col, IMG_ROW_START, cx, cy, col_off))
+        all_files[f'xl/media/{fname}'] = cropped_data
+        cur_col_off_emu += cx
     return (etree.tostring(drawing, xml_declaration=True, encoding='UTF-8', standalone=True),
             etree.tostring(rels,    xml_declaration=True, encoding='UTF-8', standalone=True))
 
@@ -473,7 +520,7 @@ if uploaded_xlsb and uploaded_template:
 
                     # 生成
                     today = datetime.now().strftime('%Y%m%d')
-                    output_path = os.path.join(tmpdir, f'_最終見積書_カードラボ様_{today}.xlsx')
+                    output_path = os.path.join(tmpdir, f'最終見積書_カードラボ様_{today}.xlsx')
                     generate(xlsx_paths, template_path, output_path, orig_paths=xlsb_orig_paths)
 
                     with open(output_path, 'rb') as f:
@@ -486,7 +533,7 @@ if uploaded_xlsb and uploaded_template:
                     </div>
                     """, unsafe_allow_html=True)
 
-                    fname = f'_最終見積書_カードラボ様_{today}.xlsx'
+                    fname = f'最終見積書_カードラボ様_{today}.xlsx'
                     st.download_button(
                         label=f"⬇️ {fname} をダウンロード",
                         data=output_bytes,
