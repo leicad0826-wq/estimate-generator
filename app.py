@@ -131,6 +131,13 @@ def parse_betto(text):
                                   'unit': qu.group(2), 'price': int(price)})
                 else:
                     items.append({'name': line, 'qty': 1, 'unit': '式', 'price': 0})
+            elif len(parts) == 2:
+                name = parts[0].strip()
+                price = re.sub(r'[^\d]', '', parts[1])
+                if price:
+                    items.append({'name': name, 'qty': 1, 'unit': '式', 'price': int(price)})
+                else:
+                    items.append({'name': line, 'qty': 1, 'unit': '式', 'price': 0})
             else:
                 items.append({'name': line, 'qty': 1, 'unit': '式', 'price': 0})
     return items
@@ -141,7 +148,10 @@ def read_estimate(xlsx_path):
     anken = str(ws['D7'].value or '')
     anken_stripped = re.sub(r'^\d{3}', '', anken).strip()
     nouki = ws['D10'].value
-    if isinstance(nouki, datetime): nouki = nouki.strftime('%Y/%m/%d')
+    if isinstance(nouki, datetime):
+        nouki = nouki.strftime('%Y/%m/%d')
+    elif isinstance(nouki, (int, float)) and 40000 < nouki < 60000:
+        nouki = (datetime(1899, 12, 30) + timedelta(days=int(nouki))).strftime('%Y/%m/%d')
     honnohin = ws['D43'].value or 0
     yubi     = ws['K43'].value or 0
     tanka = None
@@ -171,20 +181,32 @@ def read_estimate(xlsx_path):
                 betto_items=parse_betto(betto_text), sku=sku,
                 size_label=size_label, size_str=size_str, insatsu=insatsu_display)
 
-def get_images_from_sheet(xlsx_path, sheet_name='種別'):
+def get_images_from_sheet(file_path, sheet_name='種別'):
     images = []
-    with zipfile.ZipFile(xlsx_path) as z:
-        wb_xml  = etree.fromstring(z.read('xl/workbook.xml'))
-        wb_rels = etree.fromstring(z.read('xl/_rels/workbook.xml.rels'))
-        rid_to_target = {r.get('Id'): r.get('Target') for r in wb_rels}
-        sheet_file = None
-        for sh in wb_xml.findall(f'{{{NS_S}}}sheets/{{{NS_S}}}sheet'):
-            if sh.get('name') == sheet_name:
-                rid = sh.get(f'{{{NS_R}}}id')
-                sheet_file = rid_to_target.get(rid, '').split('/')[-1]
-                break
-        if not sheet_file: return images
-        rels_path = f'xl/worksheets/_rels/{sheet_file}.rels'
+    is_xlsb = file_path.lower().endswith('.xlsb')
+    with zipfile.ZipFile(file_path) as z:
+        if is_xlsb:
+            import pyxlsb as _pyxlsb
+            with _pyxlsb.open_workbook(file_path) as wb_xlsb:
+                sheet_idx = None
+                for i, sname in enumerate(wb_xlsb.sheets):
+                    if sname == sheet_name:
+                        sheet_idx = i; break
+            if sheet_idx is None: return images
+            sheet_file = f'sheet{sheet_idx + 1}.bin'
+            rels_path = f'xl/worksheets/_rels/{sheet_file}.rels'
+        else:
+            wb_xml  = etree.fromstring(z.read('xl/workbook.xml'))
+            wb_rels = etree.fromstring(z.read('xl/_rels/workbook.xml.rels'))
+            rid_to_target = {r.get('Id'): r.get('Target') for r in wb_rels}
+            sheet_file = None
+            for sh in wb_xml.findall(f'{{{NS_S}}}sheets/{{{NS_S}}}sheet'):
+                if sh.get('name') == sheet_name:
+                    rid = sh.get(f'{{{NS_R}}}id')
+                    sheet_file = rid_to_target.get(rid, '').split('/')[-1]
+                    break
+            if not sheet_file: return images
+            rels_path = f'xl/worksheets/_rels/{sheet_file}.rels'
         if rels_path not in z.namelist(): return images
         sheet_rels = etree.fromstring(z.read(rels_path))
         drawing_target = None
@@ -310,7 +332,7 @@ def fill_sheet(ws, d):
         cell.font  = Font(name='游ゴシック', size=11)
         cell.alignment = Alignment(vertical='center')
 
-def generate(xlsx_paths, template_path, output_path):
+def generate(xlsx_paths, template_path, output_path, orig_paths=None):
     tomorrow = datetime.now() + timedelta(days=1)
     shutil.copy(template_path, output_path)
     wb_out = load_workbook(output_path)
@@ -318,9 +340,10 @@ def generate(xlsx_paths, template_path, output_path):
         tmpl_drawing = zt.read('xl/drawings/drawing1.xml')
         tmpl_rels    = zt.read('xl/drawings/_rels/drawing1.xml.rels')
     datasets = []
-    for xlsx_path in xlsx_paths:
+    for i, xlsx_path in enumerate(xlsx_paths):
         d = read_estimate(xlsx_path)
-        raw = get_images_from_sheet(xlsx_path, '種別')
+        img_path = orig_paths[i] if orig_paths else xlsx_path
+        raw = get_images_from_sheet(img_path, '種別')
         datasets.append({'d': d, 'images': raw, 'path': xlsx_path})
     for idx, ds in enumerate(datasets):
         sheet_name = ds['d']['anken'][:31]
@@ -416,11 +439,17 @@ if uploaded_xlsb and uploaded_template:
                 try:
                     # xlsb → xlsx 変換（pyxlsb使用）
                     xlsx_paths = []
+                    xlsb_orig_paths = []
                     progress = st.progress(0)
                     for i, uf in enumerate(uploaded_xlsb):
                         import pyxlsb, io as _io
                         from openpyxl import Workbook as _WB
                         xlsb_bytes = uf.read()
+                        # 元xlsbを保存（画像抽出用）
+                        xlsb_orig_path = os.path.join(tmpdir, uf.name)
+                        with open(xlsb_orig_path, 'wb') as f_out:
+                            f_out.write(xlsb_bytes)
+                        xlsb_orig_paths.append(xlsb_orig_path)
                         xlsx_path = os.path.join(tmpdir, uf.name.replace('.xlsb', '.xlsx'))
                         with pyxlsb.open_workbook(_io.BytesIO(xlsb_bytes)) as wb_xlsb:
                             wb_new = _WB()
@@ -445,7 +474,7 @@ if uploaded_xlsb and uploaded_template:
                     # 生成
                     today = datetime.now().strftime('%Y%m%d')
                     output_path = os.path.join(tmpdir, f'_最終見積書_カードラボ様_{today}.xlsx')
-                    generate(xlsx_paths, template_path, output_path)
+                    generate(xlsx_paths, template_path, output_path, orig_paths=xlsb_orig_paths)
 
                     with open(output_path, 'rb') as f:
                         output_bytes = f.read()
