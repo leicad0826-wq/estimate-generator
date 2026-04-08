@@ -99,7 +99,7 @@ html, body, [class*="css"] { font-family: 'Noto Sans JP', sans-serif; }
     border: none !important;
     border-radius: 16px !important;
     padding: 24px 28px !important;
-    font-size: 1.15rem !important;
+    font-size: 1.3rem !important;
     font-weight: 700 !important;
     box-shadow: 0 4px 16px rgba(180,60,120,0.3) !important;
     transition: all 0.2s !important;
