@@ -450,10 +450,11 @@ def fill_sheet(ws, d):
     for i, slot_row in enumerate(SLOTS):
         if i < len(all_items):
             item = all_items[i]
-            ws.cell(row=slot_row, column=1).value  = item['name']
-            ws.cell(row=slot_row, column=16).value = item['qty']
-            ws.cell(row=slot_row, column=22).value = item['unit']
-            ws.cell(row=slot_row, column=25).value = f"=Y{SLOTS[0]}" if i==1 else item['price']
+            has_name = item['name'] is not None and str(item['name']).strip() != ''
+            ws.cell(row=slot_row, column=1).value  = item['name'] if has_name else None
+            ws.cell(row=slot_row, column=16).value = item['qty'] if has_name else None
+            ws.cell(row=slot_row, column=22).value = item['unit'] if has_name else None
+            ws.cell(row=slot_row, column=25).value = (f"=Y{SLOTS[0]}" if i==1 else item['price']) if has_name else None
         else:
             ws.cell(row=slot_row, column=1).value  = None
             ws.cell(row=slot_row, column=16).value = None
