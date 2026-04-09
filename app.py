@@ -543,11 +543,15 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+if 'xlsb_key' not in st.session_state:
+    st.session_state.xlsb_key = 0
+
 uploaded_xlsb = st.file_uploader(
     "見積算出表 .xlsb をドラッグ＆ドロップ",
     type=['xlsb'],
     accept_multiple_files=True,
-    label_visibility="collapsed"
+    label_visibility="collapsed",
+    key=f"xlsb_{st.session_state.xlsb_key}"
 )
 
 st.markdown("""
@@ -623,27 +627,11 @@ if uploaded_xlsb and uploaded_template:
 
                     fname = f'最終見積書_カードラボ様_{today}.xlsx'
 
-                    import base64 as _b64
-                    _mascot_img = Image.open('mascot.png')
-                    _mascot_img.thumbnail((150, 220), Image.LANCZOS)
-                    _buf = io.BytesIO()
-                    _mascot_img.save(_buf, format='PNG')
-                    _mascot_b64 = _b64.b64encode(_buf.getvalue()).decode()
-
-                    st.markdown(f"""
-                    <div class="success-box" style="display:flex;align-items:center;justify-content:center;gap:20px;">
-                        <img src="data:image/png;base64,{_mascot_b64}" style="height:200px;margin:-30px 0;">
-                        <span style="font-size:1.2rem;">🎉 <b>生成できました！</b></span>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    st.download_button(
-                        label=f"⬇️  {fname}  を\nダウンロード",
-                        data=output_bytes,
-                        file_name=fname,
-                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        use_container_width=True
-                    )
+                    # 結果をsession_stateに保存してリセット
+                    st.session_state.result_bytes = output_bytes
+                    st.session_state.result_fname = fname
+                    st.session_state.xlsb_key += 1
+                    st.rerun()
 
                 except Exception as e:
                     st.error(f"エラーが発生しました：{str(e)}")
@@ -654,6 +642,33 @@ else:
         🌸 見積算出表とテンプレートをアップロードしてください
     </div>
     """, unsafe_allow_html=True)
+
+# 生成結果の表示（rerun後）
+if 'result_bytes' in st.session_state and st.session_state.result_bytes is not None:
+    import base64 as _b64
+    _mascot_img = Image.open('mascot.png')
+    _mascot_img.thumbnail((150, 220), Image.LANCZOS)
+    _buf = io.BytesIO()
+    _mascot_img.save(_buf, format='PNG')
+    _mascot_b64 = _b64.b64encode(_buf.getvalue()).decode()
+
+    st.markdown(f"""
+    <div class="success-box" style="display:flex;align-items:center;justify-content:center;gap:20px;">
+        <img src="data:image/png;base64,{_mascot_b64}" style="height:200px;margin:-30px 0;">
+        <span style="font-size:1.2rem;">🎉 <b>生成できました！</b></span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.download_button(
+        label=f"⬇️  {st.session_state.result_fname}  を\nダウンロード",
+        data=st.session_state.result_bytes,
+        file_name=st.session_state.result_fname,
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        use_container_width=True
+    )
+    # ダウンロード後にクリア
+    st.session_state.result_bytes = None
+    st.session_state.result_fname = None
 
 # フッター
 st.markdown("<hr style='border:none;border-top:1px solid #f0d4e4;margin-top:32px;'>", unsafe_allow_html=True)
