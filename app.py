@@ -187,10 +187,12 @@ def read_estimate(xlsx_path):
     anken = str(ws['D7'].value or '')
     anken_stripped = re.sub(r'^\d{3}', '', anken).strip()
     nouki = ws['D10'].value
+    weekdays = ['月', '火', '水', '木', '金', '土', '日']
     if isinstance(nouki, datetime):
-        nouki = nouki.strftime('%Y/%m/%d')
+        nouki = f"{nouki.strftime('%Y年%m月%d日')}（{weekdays[nouki.weekday()]}）"
     elif isinstance(nouki, (int, float)) and 40000 < nouki < 60000:
-        nouki = (datetime(1899, 12, 30) + timedelta(days=int(nouki))).strftime('%Y/%m/%d')
+        dt = datetime(1899, 12, 30) + timedelta(days=int(nouki))
+        nouki = f"{dt.strftime('%Y年%m月%d日')}（{weekdays[dt.weekday()]}）"
     honnohin = ws['D43'].value or 0
     yubi     = ws['K43'].value or 0
     tanka = None
