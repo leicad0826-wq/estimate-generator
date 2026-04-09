@@ -628,9 +628,9 @@ if uploaded_xlsb and uploaded_template:
                     _mascot_b64 = _b64.b64encode(_buf.getvalue()).decode()
 
                     st.markdown(f"""
-                    <div class="success-box">
-                        <img src="data:image/png;base64,{_mascot_b64}" style="height:140px;margin-bottom:10px;">
-                        <br>🎉 <b>生成できました！</b>
+                    <div class="success-box" style="display:flex;align-items:center;justify-content:center;gap:20px;">
+                        <span style="font-size:1.2rem;">🎉 <b>生成できました！</b></span>
+                        <img src="data:image/png;base64,{_mascot_b64}" style="height:140px;">
                     </div>
                     """, unsafe_allow_html=True)
 
