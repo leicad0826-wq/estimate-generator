@@ -626,6 +626,8 @@ if uploaded_xlsb and uploaded_template:
                     </div>
                     """, unsafe_allow_html=True)
 
+                    st.image('mascot.png', width=200)
+
                     st.download_button(
                         label=f"⬇️  {fname}  を\nダウンロード",
                         data=output_bytes,
