@@ -620,13 +620,19 @@ if uploaded_xlsb and uploaded_template:
 
                     fname = f'最終見積書_カードラボ様_{today}.xlsx'
 
-                    st.markdown("""
+                    import base64 as _b64
+                    _mascot_img = Image.open('mascot.png')
+                    _mascot_img.thumbnail((150, 220), Image.LANCZOS)
+                    _buf = io.BytesIO()
+                    _mascot_img.save(_buf, format='PNG')
+                    _mascot_b64 = _b64.b64encode(_buf.getvalue()).decode()
+
+                    st.markdown(f"""
                     <div class="success-box">
-                        🎉 <b>生成できました！</b>
+                        <img src="data:image/png;base64,{_mascot_b64}" style="height:140px;margin-bottom:10px;">
+                        <br>🎉 <b>生成できました！</b>
                     </div>
                     """, unsafe_allow_html=True)
-
-                    st.image('mascot.png', width=200)
 
                     st.download_button(
                         label=f"⬇️  {fname}  を\nダウンロード",
