@@ -629,8 +629,8 @@ if uploaded_xlsb and uploaded_template:
 
                     st.markdown(f"""
                     <div class="success-box" style="display:flex;align-items:center;justify-content:center;gap:20px;">
-                        <span style="font-size:1.2rem;">🎉 <b>生成できました！</b></span>
                         <img src="data:image/png;base64,{_mascot_b64}" style="height:140px;">
+                        <span style="font-size:1.2rem;">🎉 <b>生成できました！</b></span>
                     </div>
                     """, unsafe_allow_html=True)
 
